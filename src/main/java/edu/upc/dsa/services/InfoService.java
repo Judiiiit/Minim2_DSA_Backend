@@ -4,6 +4,7 @@ import edu.upc.dsa.SystemManager;
 import edu.upc.dsa.services.dto.Faq;
 import edu.upc.dsa.services.dto.Question;
 import edu.upc.dsa.services.dto.Video;
+import edu.upc.dsa.services.dto.Issue;
 import io.swagger.annotations.*;
 import org.apache.log4j.Logger;
 
@@ -133,6 +134,39 @@ public class InfoService {
         ));
         GenericEntity<List<Video>> entity = new GenericEntity<List<Video>>(videos) {};
         return Response.ok(entity).build();
+    }
+
+
+    @POST
+    @Path("/issue")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @ApiOperation(value = "Receive an issue report from the app")
+    @ApiResponses({
+            @ApiResponse(code = 201, message = "Issue received", response = Issue.class),
+            @ApiResponse(code = 400, message = "Invalid issue")
+    })
+    public Response postIssue(Issue issue) {
+        logger.info("posting issue: " + issue);
+
+        if (issue == null ||
+                issue.getInformer() == null || issue.getInformer().isEmpty() ||
+                issue.getMessage() == null || issue.getMessage().isEmpty()) {
+
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Missing required fields: informer, message")
+                    .build();
+        }
+
+        if (issue.getDate() == null || issue.getDate().isEmpty()) {
+            issue.setDate(LocalDateTime.now().toString());
+        }
+
+        // Solo mostrar por consola/log (como pide la tarea)
+        logger.info("ISSUE RECEIVED -> date=" + issue.getDate()
+                + ", informer=" + issue.getInformer()
+                + ", message=" + issue.getMessage());
+
+        return Response.status(Response.Status.CREATED).entity(issue).build();
     }
 
 
