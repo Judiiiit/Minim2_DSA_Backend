@@ -6,9 +6,11 @@ import edu.upc.dsa.managers.game.GameManager;
 import edu.upc.dsa.managers.shop.ShopManager;
 import edu.upc.dsa.managers.user.UserManager;
 import edu.upc.dsa.services.dto.Question;
+import edu.upc.dsa.services.dto.Group;
 import org.apache.log4j.Logger;
 
 import java.util.List;
+
 
 public class SystemManager {
 
@@ -156,5 +158,8 @@ public class SystemManager {
                 + ", sender=" + q.getSender());
         // solo queda registrado en logs, faltaria BBDD si lo necesitamos
     }
+
+
+
 
 }

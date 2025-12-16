@@ -1,22 +1,29 @@
 package edu.upc.dsa.services;
 
 import edu.upc.dsa.SystemManager;
+import edu.upc.dsa.models.User;
+
 import edu.upc.dsa.services.dto.Faq;
 import edu.upc.dsa.services.dto.Question;
 import edu.upc.dsa.services.dto.Video;
 import edu.upc.dsa.services.dto.Issue;
+import edu.upc.dsa.services.dto.Group;
 import io.swagger.annotations.*;
 import org.apache.log4j.Logger;
 
 import javax.ws.rs.*;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 @Api(value = "/info", description = "Info endpoints")
@@ -160,8 +167,6 @@ public class InfoService {
         if (issue.getDate() == null || issue.getDate().isEmpty()) {
             issue.setDate(LocalDateTime.now().toString());
         }
-
-        // Solo mostrar por consola/log (como pide la tarea)
         logger.info("ISSUE RECEIVED -> date=" + issue.getDate()
                 + ", informer=" + issue.getInformer()
                 + ", message=" + issue.getMessage());
@@ -169,6 +174,93 @@ public class InfoService {
         return Response.status(Response.Status.CREATED).entity(issue).build();
     }
 
+
+
+    private List<Group> buildGroups() {
+        List<Group> groups = new ArrayList<Group>();
+        groups.add(new Group(1, "Team Alpha"));
+        groups.add(new Group(2, "Team Beta"));
+        groups.add(new Group(3, "Team Gamma"));
+        return groups;
+    }
+
+    private static Map<Integer, Set<String>> groupMembers = new HashMap<>();
+
+
+
+    @GET
+    @Path("/groups")
+    @ApiOperation(value = "Get list of groups")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "Group list returned correctly")
+    })
+    public Response getGroups() {
+        logger.info("Getting groups");
+
+        List<Group> groups = buildGroups();
+        GenericEntity<List<Group>> entity = new GenericEntity<List<Group>>(groups) {};
+        return Response.ok(entity).build();
+    }
+
+
+
+    @POST
+    @Path("/groups/{groupId}/")
+    @ApiOperation(value = "Join a group")
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "User joined the group"),
+            @ApiResponse(code = 401, message = "Unauthorized"),
+            @ApiResponse(code = 404, message = "Group not found"),
+            @ApiResponse(code = 409, message = "User already in group")
+    })
+    public Response joinGroup(@PathParam("groupId") int groupId,
+                              @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
+
+        if (auth == null || auth.isEmpty()) {
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("Missing Authorization header")
+                    .build();
+        }
+
+        User user = SystemManager.authenticate(auth);
+
+        if (user == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        boolean exists = false;
+        for (Group g : buildGroups()) {
+            if (g.getId() == groupId) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Group not found")
+                    .build();
+        }
+
+        String username = user.getUsername();
+
+        if (!groupMembers.containsKey(groupId)) {
+            groupMembers.put(groupId, new HashSet<>());
+        }
+
+        Set<String> members = groupMembers.get(groupId);
+
+        if (members.contains(username)) {
+            logger.info("User " + username + " already joined groupId=" + groupId);
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("User already in group")
+                    .build();
+        }
+
+        members.add(username);
+        logger.info("User " + username + " joined groupId=" + groupId);
+
+        return Response.ok().build();
+    }
 
 
 }
